@@ -1,0 +1,6 @@
+.vs/
+x64
+listing_*
+test*
+*.asm
+*.user
