@@ -31,7 +31,12 @@ static string_t string_cstring(const char* s) {
 	return string;
 }
 
-#define STRING_LIT(s) string((uint8_t *)(s), sizeof(s) - 1)
+static string_t _string_create(uint8_t *data, size_t length) {
+  string_t result = { data, length };
+  return result;
+}
+
+#define STRING_LIT(s) _string_create((uint8_t *)(s), sizeof(s) - 1)
 
 static void string_list_push(string_list_t* list, string_t string) {
 	string_list_node_t* node = PUSH_ARRAY(string_list_node_t, 1);

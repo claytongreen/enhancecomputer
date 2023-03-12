@@ -1,0 +1,100 @@
+str file #option;
+
+void Start() {
+  str exe = "x64\\Debug\\main.exe";
+  // str exe = "x64\\Debug\\enhancecomputer.exe";
+
+  SystemShellExecute("cls");
+
+  assert SystemShellExecute("build");
+
+  // check exe exists
+  assert PathExists(exe);
+
+  if file != "" {
+    assert PathExists(file) == true;
+
+    Test(exe, ".", file);
+  } else {
+    RunDefaultTests(exe);
+  }
+}
+
+void RunDefaultTests(str exe) {
+  assert PathExists("part1");
+
+  Log("");
+
+  for str file in DirectoryEnumerate("part1"):assert() {
+    if StringContains(file, ".asm") { continue; }
+
+    Log("%file%...");
+
+    bool result = Test(exe, "part1", file);
+    if result == false { break; }
+
+    Log("");
+  }
+
+  if PathExists("out.asm") { PathDelete("out.asm"); }
+  if PathExists("out_asm") { PathDelete("out_asm"); }
+}
+
+bool Test(str exe, str path, str file) {
+  if !SystemShellExecute("%exe% %path%\\%file% > out.asm") {
+    SystemShellExecute("%exe% %path%\\%file% 1");
+
+    return false;
+  }
+  if !SystemShellExecute("nasm -o out_asm out.asm") {
+    SystemShellExecute("type out.asm");
+
+    return false;
+  }
+  if !SystemShellExecute("fc /B %path%\\%file% out_asm") {
+    str orig = FileReadAll("%path%\\%file%.asm"):assert();
+    str disa = FileReadAll("out.asm"):assert();
+
+    str[] orig_lines = new str[];
+    str[] disa_lines = new str[];
+
+    int length = file:len();
+
+    for str line in StringSplitByCharacter(orig, "\n", false) {
+      str trimmed = StringTrim(line);
+      if StringStartsWith(trimmed, ";") { continue; }
+      if trimmed:len() == 0 { continue; }
+
+      length = length if trimmed:len() < length else trimmed:len();
+
+      orig_lines:add(trimmed);
+    }
+    for str line in StringSplitByCharacter(disa, "\n", false) {
+      str trimmed = StringTrim(line);
+      if StringStartsWith(trimmed, ";") { continue; }
+      if trimmed:len() == 0 { continue; }
+
+      disa_lines:add(trimmed);
+    }
+
+    Log("%file%   out");
+
+    int lines = orig_lines:len() if orig_lines:len() > disa_lines:len() else disa_lines:len();
+    for int i = 0; i < lines; i += 1 {
+      str left  = orig_lines[i] if i < orig_lines:len() else "---";
+      str right = disa_lines[i] if i < disa_lines:len() else "---";
+
+      str left_pad = StringRepeat(" ", length - left:len());
+
+      str message = "%left%%left_pad%   %right%";
+      str modifier = TextColorError() + TextBold() if left != right else TextWeight(100);
+      if (left != right) {
+	Log(modifier + message);
+      }
+    }
+
+    return false;
+  }
+
+  return true;
+}
